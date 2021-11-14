@@ -1,0 +1,19 @@
+name: atlantarpplugin
+version: '${project.version}'
+main: ru.atlantacraft.atlantarpplugin.AtlantaRPPlugin
+prefix: atlrp
+softdepend: [ worldguard ]
+authors: [ Lawrence ]
+description: Atlanta RP Plugin
+website: atlanta-craft.ru
+
+commands:
+  capture:
+    description: Capture a region
+    usage: /<command> inside a region
+    permission: atl.capture
+
+  togglecapturable:
+    description: Set a region as capturable
+    usage: /<command> [region]
+    permission: atl.setcapturable
