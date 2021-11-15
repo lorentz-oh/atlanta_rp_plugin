@@ -1,7 +1,9 @@
 package ru.atlantacraft.atlantarpplugin;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.atlantacraft.atlantarpplugin.commands.CommandCallEmg;
 import ru.atlantacraft.atlantarpplugin.commands.CommandCapture;
+import ru.atlantacraft.atlantarpplugin.commands.CommandRespondEmg;
 import ru.atlantacraft.atlantarpplugin.commands.CommandToggleCapturable;
 
 public final class AtlantaRPPlugin extends JavaPlugin {
@@ -25,6 +27,11 @@ public final class AtlantaRPPlugin extends JavaPlugin {
 
         this.getCommand("togglecapturable").setExecutor(new CommandToggleCapturable());
         this.getServer().getPluginManager().registerEvents(CommandToggleCapturable.inst(), this);
+
+        this.getCommand("callemg").setExecutor(new CommandCallEmg());
+        this.getServer().getPluginManager().registerEvents(CommandCallEmg.inst(), this);
+
+        this.getCommand("respondemg").setExecutor(new CommandRespondEmg());
     }
 
     @Override

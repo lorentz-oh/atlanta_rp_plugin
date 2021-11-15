@@ -17,3 +17,13 @@ commands:
     description: Set a region as capturable
     usage: /<command> [region]
     permission: atl.setcapturable
+
+  callemg:
+    description: Call police, taxi, medic etc.
+    usage: /<command> [group] [message]
+    permission: atl.callemg
+
+  respondemg:
+    description: Respond to an emergency call if you are police, taxi, medic etc.
+    usage: /<command> [callid]
+    permission: atl.resvemg
