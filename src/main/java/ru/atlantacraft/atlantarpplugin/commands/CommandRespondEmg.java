@@ -1,5 +1,8 @@
 package ru.atlantacraft.atlantarpplugin.commands;
 
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,17 +33,23 @@ public class CommandRespondEmg implements CommandExecutor {
                 return false;
             }
         }
-        Event.Result result = CommandCallEmg.inst().respondCall((Player)sender, id);
-        switch (result){
-            case DENY:
-                sender.sendMessage("Не получилось отреагировать на вызов. Возможно, он уже просрочился.");
-                return true;
-            case DEFAULT:
-                return false;
-            case ALLOW:
-                sender.sendMessage("Вы отрегировали на вызов");
-                return true;
+        CommandCallEmg.Call call = CommandCallEmg.inst().respondCall((Player)sender, id);
+        if(call == null){
+            sender.spigot().sendMessage(
+                    new ComponentBuilder("Не получилось отреагировать на вызов. Возможно, он уже просрочился.")
+                            .color(ChatColor.GREEN).create()
+            );
+        }else{
+            sender.spigot().sendMessage(
+                new ComponentBuilder("Вы отрегировали, нажмите чтобы поставить метку: " + formatLoc(call.loc))
+                        .color(ChatColor.GREEN).create()
+            );
+
         }
-        return false;
+        return true;
+    }
+
+    public static String formatLoc(Location loc){
+        return "[x:" + loc.getBlockX()+", y:"+ loc.getBlockY()+", z:"+ loc.getBlockZ()+"]";
     }
 }

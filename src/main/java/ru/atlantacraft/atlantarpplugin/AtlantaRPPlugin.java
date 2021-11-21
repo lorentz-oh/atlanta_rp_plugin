@@ -1,10 +1,15 @@
 package ru.atlantacraft.atlantarpplugin;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.atlantacraft.atlantarpplugin.commands.CommandCallEmg;
 import ru.atlantacraft.atlantarpplugin.commands.CommandCapture;
 import ru.atlantacraft.atlantarpplugin.commands.CommandRespondEmg;
 import ru.atlantacraft.atlantarpplugin.commands.CommandToggleCapturable;
+
+import java.util.UUID;
 
 public final class AtlantaRPPlugin extends JavaPlugin {
 
@@ -36,6 +41,7 @@ public final class AtlantaRPPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+
         CommandCapture.inst().save_capture_data();
         CommandToggleCapturable.inst().save();
     }
