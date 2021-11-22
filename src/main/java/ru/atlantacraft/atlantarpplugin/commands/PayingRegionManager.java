@@ -9,20 +9,22 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import ru.atlantacraft.atlantarpplugin.AtlantaRPPlugin;
 
-import javax.swing.plaf.synth.Region;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
-import java.util.UUID;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PayingRegionManager implements CommandExecutor, Listener {
 
     private static PayingRegionManager inst;
     private static ConcurrentHashMap<String, RegionData> regions = new ConcurrentHashMap<>();
+    private static int reward_period = 100;
 
     public static PayingRegionManager inst(){
         return inst;
@@ -30,7 +32,65 @@ public class PayingRegionManager implements CommandExecutor, Listener {
 
     public PayingRegionManager(){
         inst = this;
-        
+        load();
+        reward_period = AtlantaRPPlugin.inst().getConfig().getInt("reward_period");
+        AtlantaRPPlugin.inst().getServer().getScheduler().scheduleSyncRepeatingTask(
+            AtlantaRPPlugin.inst(),
+            ()->{
+                for(Map.Entry<String, RegionData> data: regions.entrySet()){
+                    inst().reward(data.getKey(), data.getValue());
+                }
+            },
+            100,
+            reward_period);
+        //периодическое сохранение
+        AtlantaRPPlugin.inst().getServer().getScheduler().scheduleSyncRepeatingTask(
+                AtlantaRPPlugin.inst(),
+                this::save,
+                100,
+                12000);
+    }
+
+    private static final String pay_file = "paying_regions.yml";
+
+    public void load(){
+        File capture_data = new File(AtlantaRPPlugin.inst().getDataFolder(), pay_file);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(capture_data);
+        for(String key : config.getKeys(false)){
+            String owner_uuid = config.getString(key+".owner");
+            int amount = config.getInt(key+".amount");
+            String world = config.getString(key+".world");
+            regions.put(key, new RegionData(amount, owner_uuid, world));
+        }
+    }
+
+    public void save(){
+        YamlConfiguration config = new YamlConfiguration();
+        for(Map.Entry<String, RegionData> entry : regions.entrySet()){
+            config.set(entry.getKey()+".owner", entry.getValue().owner.toString());
+            config.set(entry.getKey()+".amount", entry.getValue().pay_amount);
+            config.set(entry.getKey()+".world", entry.getValue().world);
+        }
+        File capture_data = new File(AtlantaRPPlugin.inst().getDataFolder(), "capture.yml");
+        capture_data.delete();
+        try {
+            config.save(capture_data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void reward(String reg_name, RegionData region){
+        RegionContainer container = WorldGuardPlugin.inst().getRegionContainer();
+        RegionManager manager = container.get(Bukkit.getWorld(region.world));
+        ProtectedRegion reg = manager.getRegions().get(reg_name);
+        if(reg == null){
+            regions.remove(reg_name);
+            return;
+        }
+        //ВАЖНО - зависит от команды /givecoins из мода universal coins
+        Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(),
+                "givecoins " + region.owner + " " + region.pay_amount);
     }
 
     @Override
@@ -87,7 +147,7 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         if(reg == null){
             return false;
         }
-        regions.put(region, new RegionData(pay, null));
+        regions.put(region, new RegionData(pay, null, ((Player) sender).getWorld().getName()));
         return true;
     }
 
@@ -127,7 +187,7 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         if(data == null){
             return false;
         }
-        data.owner = owner.getUniqueId();
+        data.owner = owner.getName();
         return true;
     }
 
@@ -152,19 +212,22 @@ public class PayingRegionManager implements CommandExecutor, Listener {
 
     public static class RegionData{
         public int pay_amount;
-        public UUID owner;
+        public String owner;
+        public String world;
 
         @Override
         public String toString() {
             return "RegionData{" +
                     "pay_amount=" + pay_amount +
                     ", owner=" + owner +
+                    ", world='" + world + '\'' +
                     '}';
         }
 
-        public RegionData(int pay_amount, UUID owner){
+        public RegionData(int pay_amount, String owner, String world){
             this.pay_amount = pay_amount;
             this.owner = owner;
+            this.world = world;
         }
     }
 }

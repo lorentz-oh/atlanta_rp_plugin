@@ -27,3 +27,8 @@ commands:
     description: Respond to an emergency call if you are police, taxi, medic etc.
     usage: /<command> [callid]
     permission: atl.resvemg
+
+  payregion:
+    description: Add a region as paying.
+    usage: /<command> [add|remove|query|setowner|setpay]
+    permission: atl.payregmanage

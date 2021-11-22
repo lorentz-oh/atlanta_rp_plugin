@@ -4,10 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.atlantacraft.atlantarpplugin.commands.CommandCallEmg;
-import ru.atlantacraft.atlantarpplugin.commands.CommandCapture;
-import ru.atlantacraft.atlantarpplugin.commands.CommandRespondEmg;
-import ru.atlantacraft.atlantarpplugin.commands.CommandToggleCapturable;
+import ru.atlantacraft.atlantarpplugin.commands.*;
 
 import java.util.UUID;
 
@@ -37,12 +34,15 @@ public final class AtlantaRPPlugin extends JavaPlugin {
         this.getServer().getPluginManager().registerEvents(CommandCallEmg.inst(), this);
 
         this.getCommand("respondemg").setExecutor(new CommandRespondEmg());
+
+        this.getCommand("payregion").setExecutor(new PayingRegionManager());
+        this.getServer().getPluginManager().registerEvents(PayingRegionManager.inst(), this);
     }
 
     @Override
     public void onDisable() {
-
         CommandCapture.inst().save_capture_data();
         CommandToggleCapturable.inst().save();
+        PayingRegionManager.inst().save();
     }
 }
