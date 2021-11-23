@@ -24,13 +24,9 @@ import java.util.*;
 public class CommandCapture implements CommandExecutor, Listener {
 
     private HashMap<String, CaptureData> capturing = new HashMap<>();
-    private HashMap<String, CaptureData> captured = new HashMap<>();
 
     private static int capture_ticks = 200;
     private static int capture_upd_ticks = 20;
-    private static int reward_period = 100;
-    private static String reward_item = "iron";
-    private static int reward_amount = 1;
 
     private static CommandCapture inst;
 
@@ -43,9 +39,6 @@ public class CommandCapture implements CommandExecutor, Listener {
 
         capture_ticks = AtlantaRPPlugin.inst().getConfig().getInt("capture_ticks");
         capture_upd_ticks = AtlantaRPPlugin.inst().getConfig().getInt("capture_upd_ticks");
-        reward_period = AtlantaRPPlugin.inst().getConfig().getInt("reward_period");
-        reward_item = AtlantaRPPlugin.inst().getConfig().getString("reward_item");
-        reward_amount = AtlantaRPPlugin.inst().getConfig().getInt("reward_amount");
 
         if(capture_upd_ticks == 0){
             AtlantaRPPlugin.inst().getLogger().warning("capture_upd_ticks установлен на ноль, меняем");
@@ -53,23 +46,12 @@ public class CommandCapture implements CommandExecutor, Listener {
         }
         AtlantaRPPlugin.inst().getLogger().info(
                 "capture_ticks = " + capture_ticks +
-        "; capture_upd_ticks = " + capture_upd_ticks +
-        "; reward_period = " + reward_period);
+        "; capture_upd_ticks = " + capture_upd_ticks);
         AtlantaRPPlugin.inst().getServer().getScheduler().scheduleSyncRepeatingTask(
                 AtlantaRPPlugin.inst(),
                 ()->{inst.onUpdate();},
                 100,
                 capture_upd_ticks);
-
-        AtlantaRPPlugin.inst().getServer().getScheduler().scheduleSyncRepeatingTask(
-                AtlantaRPPlugin.inst(),
-                ()->{
-                    for(Map.Entry<String, CaptureData> data: inst().captured.entrySet()){
-                        inst().reward(data.getKey(), data.getValue());
-                    }
-                    },
-                100,
-                reward_period);
 
         AtlantaRPPlugin.inst().getServer().getScheduler().scheduleSyncRepeatingTask(
                 AtlantaRPPlugin.inst(),
@@ -81,17 +63,7 @@ public class CommandCapture implements CommandExecutor, Listener {
     private void load_capture_data(){
         File capture_data = new File(AtlantaRPPlugin.inst().getDataFolder(), "capture.yml");
         YamlConfiguration config = YamlConfiguration.loadConfiguration(capture_data);
-        ConfigurationSection section = config.getConfigurationSection("captured");
-        for(String region : section.getKeys(false)){
-            if(section.isString("uuid") && section.isInt("time_left")){
-                UUID uuid = UUID.fromString(section.getString("uuid"));
-                int time_left = section.getInt("time_left");
-                captured.put(region, new CaptureData(uuid, time_left));
-            }
-        }
-
-        //переиспользуем ссылку
-        section = config.getConfigurationSection("capturing");
+        ConfigurationSection section = config.getConfigurationSection("capturing");
         for(String region : section.getKeys(false)){
             if(section.isString("uuid") && section.isInt("time_left")){
                 UUID uuid = UUID.fromString(section.getString("uuid"));
@@ -103,11 +75,6 @@ public class CommandCapture implements CommandExecutor, Listener {
 
     public void save_capture_data(){
         YamlConfiguration config = new YamlConfiguration();
-        for(Map.Entry<String, CaptureData> entry: captured.entrySet()){
-            String prefix = "captured."+entry.getKey();
-            config.set(prefix+".uuid", entry.getValue().player_uuid.toString());
-            config.set(prefix+".time_left", entry.getValue().time_left);
-        }
         for(Map.Entry<String, CaptureData> entry: capturing.entrySet()){
             String prefix = "capturing."+entry.getKey();
             config.set(prefix+".uuid", entry.getValue().player_uuid.toString());
@@ -173,26 +140,16 @@ public class CommandCapture implements CommandExecutor, Listener {
     }
 
     private void capture(String region, Player player){
-        CaptureData captured_data = captured.get(region);
-        if(captured_data != null){
-            Player player_it = Bukkit.getPlayer(captured_data.player_uuid);
-            if(player_it != null){
-                player_it.sendMessage("Ваш регион " + region + " был захвачен " + player.getName());
+        String owner_name = PayingRegionManager.inst().getOwner(region);
+        if(owner_name != null){
+            Player owner = Bukkit.getPlayer(owner_name);
+            if(owner != null){
+                owner.sendMessage("Ваш регион " + region + " был захвачен " + player.getName());
             }
-            captured.remove(region);
         }
         player.sendMessage("Вы захватили " + region);
-        captured.put(region, new CaptureData(player.getUniqueId()));
         capturing.remove(region);
-    }
-
-    private void reward(String region, CaptureData data){
-        Player player = Bukkit.getPlayer(data.player_uuid);
-        if(player != null){
-            player.sendMessage("Вы получаете долю от региона " + region);
-
-            Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(),"minecraft:give " + player.getName() + " " + reward_item + " " + reward_amount);
-        }
+        PayingRegionManager.inst().setOwner(region, player.getName());
     }
 
     private void failCapture(String region){
@@ -204,14 +161,12 @@ public class CommandCapture implements CommandExecutor, Listener {
             player.sendMessage("Вы провалили захват");
         }
         capturing.remove(region);
-
-        CaptureData capturedData = captured.get(region);
-        if(capturedData == null){
-            return;
-        }
-        Player other_player = Bukkit.getPlayer(capturedData.player_uuid);
-        if(capturedData != null && other_player != null){
-            other_player.sendMessage("Вы изгнали захватчиков");
+        String owner_name = PayingRegionManager.inst().getOwner(region);
+        if(owner_name != null){
+            Player owner = Bukkit.getPlayer(owner_name);
+            if(owner != null){
+                owner.sendMessage("Вы изгнали захватчиков");
+            }
         }
     }
 
@@ -250,13 +205,13 @@ public class CommandCapture implements CommandExecutor, Listener {
             }
             return;
         }
-        CaptureData capturedData = captured.get(region.getId());
-        if(capturedData != null){
-            if(capturedData.player_uuid == player.getUniqueId()){
+        String owner_name = PayingRegionManager.inst().getOwner(region.getId());
+        if(owner_name != null){
+            if(owner_name == player.getName()){
                 player.sendMessage("Этот регион уже захвачен вами");
                 return;
             }else{
-                Player other_player = Bukkit.getPlayer(capturedData.player_uuid);
+                Player other_player = Bukkit.getPlayer(owner_name);
                 if(other_player!=null){
                     other_player.sendMessage("Ваш регион " + region.getId() + " начал захватывать " + player.getName());
                 }

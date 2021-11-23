@@ -71,7 +71,7 @@ public class PayingRegionManager implements CommandExecutor, Listener {
             config.set(entry.getKey()+".amount", entry.getValue().pay_amount);
             config.set(entry.getKey()+".world", entry.getValue().world);
         }
-        File capture_data = new File(AtlantaRPPlugin.inst().getDataFolder(), "capture.yml");
+        File capture_data = new File(AtlantaRPPlugin.inst().getDataFolder(), pay_file);
         capture_data.delete();
         try {
             config.save(capture_data);
@@ -214,6 +214,15 @@ public class PayingRegionManager implements CommandExecutor, Listener {
             return false;
         }
         return true;
+    }
+
+    public String getOwner(String reg_name){
+        RegionData data = regions.get(reg_name);
+        if(data==null){
+            return null;
+        } else{
+            return data.owner;
+        }
     }
 
     private boolean setPaySubc(CommandSender sender, Command command, String label, String[] args){
