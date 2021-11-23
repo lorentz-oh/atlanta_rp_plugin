@@ -100,20 +100,20 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         }
         String subcom = args[0];
         if(subcom.equals("add")){
-            return addReg(sender, command, label, args);
+            return addRegSubc(sender, command, label, args);
         }else if(subcom.equals("remove")){
-            return removeReg(sender, command, label, args);
+            return removeRegSubc(sender, command, label, args);
         }else if(subcom.equals("query")){
             return queryReg(sender, command, label, args);
         }else if(subcom.equals("setowner")){
-            return setOwner(sender, command, label, args);
+            return setOwnerSubc(sender, command, label, args);
         }else if(subcom.equals("setpay")){
-            return setPay(sender, command, label, args);
+            return setPaySubc(sender, command, label, args);
         }
         return false;
     }
 
-    private boolean addReg(CommandSender sender, Command command, String label, String[] args){
+    private boolean addRegSubc(CommandSender sender, Command command, String label, String[] args){
         if(args.length < 3){
             return false;
         }
@@ -151,13 +151,28 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         return true;
     }
 
-    private boolean removeReg(CommandSender sender, Command command, String label, String[] args){
+    public boolean addReg(String reg_name, int pay, String world_name){
+        RegionContainer container = WorldGuardPlugin.inst().getRegionContainer();
+        RegionManager manager = container.get(Bukkit.getWorld(world_name));
+        ProtectedRegion reg = manager.getRegions().get(reg_name);
+        if(reg == null){
+            return false;
+        }
+        regions.put(reg_name, new RegionData(pay, null, world_name));
+        return true;
+    }
+
+    private boolean removeRegSubc(CommandSender sender, Command command, String label, String[] args){
         if(args.length < 2){
             return false;
         }
         String region = args[1];
         regions.remove(region);
         return true;
+    }
+
+    public boolean removeReg(String reg_name){
+        return regions.remove(reg_name) != null;
     }
 
     private boolean queryReg(CommandSender sender, Command command, String label, String[] args){
@@ -174,7 +189,7 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         return true;
     }
 
-    private boolean setOwner(CommandSender sender, Command command, String label, String[] args){
+    private boolean setOwnerSubc(CommandSender sender, Command command, String label, String[] args){
         if(args.length < 3){
             return false;
         }
@@ -191,7 +206,17 @@ public class PayingRegionManager implements CommandExecutor, Listener {
         return true;
     }
 
-    private boolean setPay(CommandSender sender, Command command, String label, String[] args){
+    public boolean setOwner(String reg_name, String owner_name){
+        RegionData data = regions.get(reg_name);
+        if(data!=null){
+            data.owner = owner_name;
+        }else{
+            return false;
+        }
+        return true;
+    }
+
+    private boolean setPaySubc(CommandSender sender, Command command, String label, String[] args){
         if(args.length < 3){
             return false;
         }
